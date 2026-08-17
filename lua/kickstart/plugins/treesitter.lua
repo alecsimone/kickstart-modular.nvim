@@ -9,7 +9,49 @@ local function gh(repo) return 'https://github.com/' .. repo end
 vim.pack.add { { src = gh 'nvim-treesitter/nvim-treesitter', version = 'main' } }
 
 -- Ensure basic parsers are installed
-local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+-- Parsers to install up front. The FileType autocommand below will fetch any
+--  other parser on demand the first time you open that filetype, so this list
+--  is not a limit -- it just means the languages you actually work in are
+--  highlighted the instant a file opens, instead of after a background install.
+--
+-- The tail of this list is the web stack this machine is used for; the head is
+--  Kickstart's stock set, which covers Neovim's own docs and config.
+local parsers = {
+  -- Kickstart defaults: Neovim's own docs, config and help files
+  'bash',
+  'c',
+  'diff',
+  'html',
+  'lua',
+  'luadoc',
+  'markdown',
+  'markdown_inline',
+  'query',
+  'vim',
+  'vimdoc',
+  -- TypeScript / JavaScript, the bulk of the work here
+  'typescript',
+  'tsx',
+  'javascript',
+  'jsdoc',
+  -- Data and config formats
+  -- NOTE: there is no separate `jsonc` parser; the `json` one handles comments.
+  'json',
+  'yaml',
+  'toml',
+  'sql',
+  'xml',
+  -- Styling
+  'css',
+  'scss',
+  -- Git and tooling
+  'git_config',
+  'git_rebase',
+  'gitcommit',
+  'gitignore',
+  'dockerfile',
+  'regex',
+}
 require('nvim-treesitter').install(parsers)
 
 ---@param buf integer

@@ -98,6 +98,48 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
+-- [[ How diagnostics are displayed ]]
+--
+-- Neovim's default is `virtual_text`: the message is appended to the end of the
+--  offending line. It gets cut off at the window edge with no way to scroll to
+--  the rest, which makes it useless for exactly the messages worth reading --
+--  TypeScript's, which routinely run to several hundred characters.
+--
+-- `virtual_lines` instead renders the full message on its own line beneath the
+--  code, wrapping as needed. Limiting it to `current_line` keeps the file from
+--  jumping around as you scroll: other problems show only as a gutter sign, and
+--  the text appears when you put the cursor on that line.
+--
+-- See `:help vim.diagnostic.Opts`
+vim.diagnostic.config {
+  virtual_text = false,
+  virtual_lines = { current_line = true },
+  underline = true,
+  update_in_insert = false, -- don't nag mid-keystroke; wait until you pause
+  severity_sort = true, -- errors sort above warnings on a shared line
+  signs = vim.g.have_nerd_font and {
+    text = {
+      [vim.diagnostic.severity.ERROR] = '󰅚 ',
+      [vim.diagnostic.severity.WARN] = '󰀪 ',
+      [vim.diagnostic.severity.INFO] = '󰋽 ',
+      [vim.diagnostic.severity.HINT] = '󰌶 ',
+    },
+  } or true,
+  float = {
+    border = 'rounded',
+    source = 'if_many', -- name the server when more than one is reporting
+  },
+}
+
+-- Sometimes you want every problem in the file at once rather than just the one
+--  under the cursor -- scanning a file you have not touched in months, say.
+vim.keymap.set('n', '<leader>td', function()
+  local current = vim.diagnostic.config().virtual_lines
+  local showing_all = type(current) == 'table' and current.current_line ~= true
+  vim.diagnostic.config { virtual_lines = showing_all and { current_line = true } or true }
+  vim.notify('Diagnostics: ' .. (showing_all and 'current line only' or 'all lines'))
+end, { desc = '[T]oggle [d]iagnostics on every line' })
+
 -- Enable the following language servers
 --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
 --  See `:help lsp-config` for information about keys and how to configure
@@ -113,6 +155,46 @@ local servers = {
   --
   -- But for many setups, the LSP (`ts_ls`) will work just fine
   -- ts_ls = {},
+
+  -- [[ TypeScript / JavaScript ]]
+  -- `vtsls` wraps the same TypeScript server VS Code uses, so diagnostics,
+  --  completions and refactors match what you are used to. Preferred over the
+  --  older `ts_ls` for its better monorepo handling and lower memory use.
+  vtsls = {
+    settings = {
+      -- Surface parameter and type hints inline, the way VS Code does.
+      --  Toggle them per-buffer with <leader>th if they get noisy.
+      typescript = {
+        inlayHints = {
+          parameterNames = { enabled = 'literals' },
+          variableTypes = { enabled = false },
+          propertyDeclarationTypes = { enabled = true },
+          functionLikeReturnTypes = { enabled = true },
+        },
+        -- Let the server search all workspace files when auto-importing,
+        --  rather than only files already open.
+        preferences = { includePackageJsonAutoImports = 'auto' },
+      },
+    },
+  },
+
+  -- ESLint runs as a language server, so lint errors appear inline as you type
+  --  exactly like the VS Code ESLint extension. Eleven repos here use it.
+  --  Run `:LspEslintFixAll` to apply every autofixable rule in the buffer.
+  eslint = {},
+
+  -- [[ Data and config formats ]]
+  jsonls = {},
+  yamlls = {},
+  taplo = {}, -- TOML: yazi, herdr, starship configs
+
+  -- [[ Web ]]
+  cssls = {},
+  html = {},
+
+  -- [[ Everything else in daily use ]]
+  bashls = {},
+  marksman = {}, -- Markdown: links, headings, and cross-file references
 
   stylua = {}, -- Used to format Lua code
 
@@ -176,6 +258,13 @@ require('mason-lspconfig').setup {
 local ensure_installed = vim.tbl_keys(servers or {})
 vim.list_extend(ensure_installed, {
   -- You can add other tools here that you want Mason to install
+  --
+  -- Formatters. These are not language servers, so they go here rather than in
+  --  the `servers` table above; conform.lua decides which one to run per
+  --  project by looking for a biome.json or a prettier config.
+  'prettierd',
+  'prettier',
+  'biome',
 })
 
 require('mason-tool-installer').setup { ensure_installed = ensure_installed }

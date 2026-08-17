@@ -46,6 +46,12 @@ statusline.setup { use_icons = vim.g.have_nerd_font }
 ---@diagnostic disable-next-line: duplicate-set-field
 statusline.section_location = function() return '%2l:%-2v' end
 
+-- The filename moved to the winbar at the top of each window (see
+--  custom/plugins/winbar.lua), so drop it here rather than print it twice.
+--  What is left is the part that genuinely belongs at the bottom: mode, git
+--  branch, diagnostics, file type and cursor position.
+statusline.section_filename = function() return '' end
+
 -- ... and there is more!
 --  Check out: https://github.com/nvim-mini/mini.nvim
 
